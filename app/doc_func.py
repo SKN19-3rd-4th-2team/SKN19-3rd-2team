@@ -1,31 +1,8 @@
 from collections import defaultdict
 from rank_bm25 import BM25Okapi
 import numpy as np
-import chromadb
 from sentence_transformers import SentenceTransformer
-import torch
-import os
 from chromadb.utils import embedding_functions
-
-
-# ---------------------------------------------------------
-# 1. 설정 (GPU 확인 등)
-# ---------------------------------------------------------
-device = "cuda" if torch.cuda.is_available() else "cpu"
-print(f"Using device: {device}")
-
-# ---------------------------------------------------------
-# 2. 모델 로드 (저장할 때 썼던 그 모델!)
-# ---------------------------------------------------------
-print("모델 로드 중...")
-doc_model = SentenceTransformer("dragonkue/BGE-m3-ko").to(device)
-
-# ---------------------------------------------------------
-# 3. ChromaDB 연결 (다운로드 받은 폴더 경로 지정)
-# ---------------------------------------------------------
-doc_client = chromadb.PersistentClient(path="./doc_db")
-doc_collection = doc_client.get_collection(name="patent_claims")
-
 
 def patent_hybrid_search(
     collection,
@@ -190,5 +167,4 @@ def patent_hybrid_search(
     aggregated = sorted(aggregated, key=lambda x: x["score"], reverse=True)
     
     return aggregated[:top_k]
-
 

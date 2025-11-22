@@ -1,0 +1,5 @@
+db_search/doc_db/
+db_search/ipc_db/
+app/doc_db/
+app/ipc_db/
+.env

@@ -17,7 +17,7 @@ from state import (
     IPCMainDescription,
     OtherNoteRecord
 )
-from app.ipc_func import get_ipc_detail_data_from_code,search_ipc_with_query
+from ipc_func import get_ipc_detail_data_from_code,search_ipc_with_query
 
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")

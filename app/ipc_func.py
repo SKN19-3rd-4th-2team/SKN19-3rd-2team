@@ -1,22 +1,4 @@
-import chromadb
-from sentence_transformers import SentenceTransformer
-import torch
 import os
-from chromadb.utils import embedding_functions
-
-
-
-device = "cuda" if torch.cuda.is_available() else "cpu"
-print(f"Using device: {device}")
-
-ipc_model = embedding_functions.OpenAIEmbeddingFunction(
-    api_key=os.getenv("OPENAI_API_KEY"),
-    model_name="text-embedding-3-small",
-)
-
-ipc_client = chromadb.PersistentClient(path="./ipc_db")
-ipc_collection = ipc_client.get_collection(name="ipc_clean")
-# chroma_db와 embedding_functions는 이미 선언되어 있다고 가정합니다.
 
 # ✅ 상수 설정
 MERGE_THRESHOLD_RATIO = 6.64  # 통합 임계값 (비율 %)
@@ -26,7 +8,7 @@ MAX_DISTANCE_THRESHOLD = (
 )
 
 
-def get_ipc_codes_by_query(query_text, top_k=5):
+def get_ipc_codes_by_query(ipc_model, ipc_collection, query_text, top_k=5):
     """
     단일 쿼리 텍스트를 받아 ChromaDB에서 검색 후,
     1. 거리(Distance) 기반 노이즈 필터링
@@ -135,7 +117,7 @@ def get_ipc_codes_by_query(query_text, top_k=5):
 
 
 
-def get_combined_ipc_codes(queries, total_top_k=5):
+def get_combined_ipc_codes(ipc_model, ipc_collection, queries, total_top_k=5):
 
     # 1. 쿼리별 결과 수집 및 그룹 품질 평가
     query_groups = []
@@ -143,7 +125,7 @@ def get_combined_ipc_codes(queries, total_top_k=5):
     for query in queries:
         # 내부적으로는 넉넉하게 가져와야 선별이 가능하므로 total_top_k보다 많이 요청 (예: 3배수)
         # 여기서 get_ipc_codes_by_query는 이미 정의된 함수를 사용
-        raw_results = get_ipc_codes_by_query(query, top_k=total_top_k * 3)
+        raw_results = get_ipc_codes_by_query(ipc_model, ipc_collection, query, top_k=total_top_k * 3)
 
         if not raw_results:
             continue
@@ -206,25 +188,44 @@ def get_combined_ipc_codes(queries, total_top_k=5):
     return final_list
 
 
-def get_ipc_detail_data_from_code(codes):
+def get_ipc_detail_data_from_code(ipc_collection, codes):
     results = ipc_collection.get(ids=list(codes))
+    
+    found_ids = results.get("ids", [])
+    found_docs = results.get("documents", [])
+    found_metas = results.get("metadatas", [])
+    
     returns = []
-    for i in range(len(codes)):
-        temp = {"ids": results.get("ids")[i], "description": results.get("documents")[i], "type":results.get('metadatas')[i].get('kind'), "ancestors":results.get('metadatas')[i].get('path')}
+    for i in range(len(found_ids)):
+        meta = found_metas[i] if found_metas and i < len(found_metas) else {}
+        
+        temp = {
+            "ids": found_ids[i], 
+            "description": found_docs[i], 
+            "type": meta.get('kind', ''), 
+            "ancestors": meta.get('path', '')
+        }
         returns.append(temp)
     return returns
 
-def get_ipc_description_from_code(codes):
+def get_ipc_description_from_code(ipc_collection, codes):
     results = ipc_collection.get(ids=list(codes))
+    
+    found_ids = results.get("ids", [])
+    found_docs = results.get("documents", [])
+    
     returns = []
-    for i in range(len(codes)):
-        temp = {"ids": results.get("ids")[i], "description": results.get("documents")[i]}
+    for i in range(len(found_ids)):
+        temp = {
+            "ids": found_ids[i], 
+            "description": found_docs[i]
+        }
         returns.append(temp)
     return returns
 
 
-def search_ipc_with_query(queries, top_k=5):
-    search_output = get_combined_ipc_codes(queries, top_k)
+def search_ipc_with_query(ipc_model, ipc_collection, queries, top_k=5):
+    search_output = get_combined_ipc_codes(ipc_model, ipc_collection, queries, top_k)
     temp_codes = {"mains": [], "subs": []}
     for i in search_output:
         temp_codes["mains"].append(i.get("main"))
@@ -232,7 +233,7 @@ def search_ipc_with_query(queries, top_k=5):
             for ii in i.get("sub"):
                 temp_codes["subs"].append(ii)
     returns = {
-        "mains": get_ipc_description_from_code(set(temp_codes["mains"])),
-        "subs": get_ipc_description_from_code(set(temp_codes["subs"])),
+        "mains": get_ipc_description_from_code(ipc_collection,set(temp_codes["mains"])),
+        "subs": get_ipc_description_from_code(ipc_collection,set(temp_codes["subs"])),
     }
     return returns
