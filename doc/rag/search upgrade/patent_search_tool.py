@@ -1,6 +1,6 @@
 from collections import defaultdict
 from rank_bm25 import BM25Okapi
-
+import numpy as np
 
 def patent_hybrid_search(
     collection,
@@ -17,7 +17,6 @@ def patent_hybrid_search(
     # ========================================
     # 1. Multi-query rerank
     # ========================================
-    import numpy as np
     
     # 쿼리 리스트 정규화
     if isinstance(query_list, str):
