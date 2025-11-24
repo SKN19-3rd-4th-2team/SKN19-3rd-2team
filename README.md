@@ -30,7 +30,7 @@ LLM이 상황에 맞는 Tool을 자동으로 선택하여
 - **IPC 코드 검색**
 - **컴퓨터비전 분야 특허 검색**
 을 수행한 뒤,
-검색된 내용을 기반으로 LLM이 최종 응답을 생성하는 **RAG 기반 특허 Q&A 챗봇**입니다.
+검색된 내용을 기반으로 LLM이 최종 응답을 생성하는 **RAG 기반 특허 Q&A 챗봇**
 
 ## 2.3 프로젝트 필요성
 ### 청구항이란?
@@ -44,10 +44,15 @@ LLM이 상황에 맞는 Tool을 자동으로 선택하여
  <img width="503" height="368" alt="image" src="https://github.com/user-attachments/assets/e628d294-9b21-496b-bea4-4c1008f2a4fe" />
 
 ### 문제점
-- 기...사...............?
-- 매년 증가하는 특허 문서로 인해 키워드 기반 검색은 정확도가 낮음
-- 특허 청구항은 문장이 길고 구조가 복잡해 비전문가는 접근 난이도 높음
-- LLM 기반 의미 검색(RAG)을 통해 보다 정확하고 빠른 탐색 필요
+1) 관련 기사 1
+
+<img width="1193" height="300" alt="image" src="https://github.com/user-attachments/assets/01a10fac-f137-4984-a757-5f0b05299de1" />
+
+2) 관련 기사 2
+
+<img width="1332" height="243" alt="image" src="https://github.com/user-attachments/assets/ed10205f-8d30-4f04-a764-3312bb8c7130" />
+
+
 
 ## 2.4 프로젝트 목표
 - 의미 기반 검색이 가능한 임베딩 기반 특허 검색 시스템 구축
@@ -125,19 +130,33 @@ LLM이 상황에 맞는 Tool을 자동으로 선택하여
 ### 수집 규모
 - **1. IPC 코드**: 약 70,000건
 - **필드 구성**
-  - (사진)
+
+  <img width="754" height="264" alt="image" src="https://github.com/user-attachments/assets/173823ac-99c7-4e3d-aa8b-33a6b143602c" />
+
+  - IPC 코드(`ipc_code`)
+  - IPC 영문 설명(`title_en`)
+  - 코드의 레벨 구분(`kind`)
+  - 부모 IPC 코드(`parent`)
+  - 최상위부터 현재 코드까지 전체 계층('path')
   
 - **2. 공개 특허 문서**: 약 30,000건
 - **청구항 개수:** 약 590,000건
 - **필드 구성**
-  - 출원번호(`patent_id`)
-  - 발명의 명칭(`title`)
-  - IPC 코드(`IpcNumber`)
+
+<img width="908" height="563" alt="image" src="https://github.com/user-attachments/assets/45e74890-1027-4fdd-9b0d-25a9b81f8781" />
+
+  - 출원번호(`id`)
+  - 발명의 명칭(`name`)
+  - 요약('abstract')
   - 청구항(`claim`)
+  - IPC 코드(`IpcNumber`) 등
+
 
 ### 전처리
 - **IPC 코드**
-  - (내용)
+  - xml파일 파싱, 필요 정보 json 변환
+  - 리스트 형태의 path를 list 형태로 변경
+  - 임베딩 생성 후 ChromaDB 저장
     
 - **특허 문서**
  - xml파일 파싱, 필요 정보 json 변환
@@ -169,7 +188,8 @@ https://github.com/____/PatentPilot/tree/main/db
 
 **해결 결과**
 
-<img width="846" height="117" alt="image" src="https://github.com/user-attachments/assets/c2862f79-ed99-460a-94bd-c4e93665d5b7" />
+<img width="806" height="129" alt="image" src="https://github.com/user-attachments/assets/3e9bb923-7db3-4aa0-ad16-704f77223b6f" />
+
 
 - 200개의 ids의 교집합을 비교해봤을 때, 약 25~50% 정도의 다른 청구항이 상위로 올라오며 편향 완화됨(랭킹 다양성 증가)
 
@@ -189,7 +209,18 @@ https://github.com/____/PatentPilot/tree/main/db
 - (눈에 보이는 사진이 있을까?)
  
 ## 2. IPC DB 검색 최적화
-  - (채울 내용)
+### 2-1. 계층 구조 관한 문제
+**문제점**
+- 1) IPC코드-설명을 각 DB에 저장한 결과, IPC 하위코드가 상위 의미를 포함하지 않아 임베딩이 단절됨
+- (사진)
+
+**해결 방안**
+- 1) 하위코드 텍스트에 상위코드 내용을 결합해 의미 단절 해소
+- 2) 각 metadata에 레벨 정보 추가, 프롬프트 수정 "큰 분야 먼저, 세부는 나중"
+
+**해결 결과**
+
+### 2-2. 오염 문제
 
 ---
 
@@ -197,14 +228,10 @@ https://github.com/____/PatentPilot/tree/main/db
 
 ### 테스트 시나리오
 - Query 예시:
-  - "영상 기반 객체 인식 장치에서 입력 인터페이스를 포함하는 방법은?"
-  - "영상 처리 장치의 디스플레이 방식에 대한 발명은?"
 
 
 ### 결과 요약
-- Hybrid Search 적용 후 Recall@30 개선
-- Multi-query 검색이 단일 쿼리 대비 평균 12~18% 향상
-- BM25 + Vector 결합이 오분류 특허 감소 효과 확인
+
 
 
 ---
