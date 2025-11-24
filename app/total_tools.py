@@ -218,7 +218,7 @@ def tool_search_patent_with_description(
 # ---------------------------------------------------------
 
 @tool(args_schema=PatentByIdInput)
-def tool_get_patent_by_id(
+def tool_search_detail_patent_by_id(
     patent_id: str,
     max_claims: int = 0,
 ) -> PatentByIdOutput:
