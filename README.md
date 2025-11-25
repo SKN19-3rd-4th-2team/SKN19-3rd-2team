@@ -116,7 +116,7 @@ SKN19-3RD-2TEAM/
 │
 ├─ .env
 ├─ .gitignore
-└─ [README.md](http://readme.md/)
+└─ README.md
 ```
 
 ---
