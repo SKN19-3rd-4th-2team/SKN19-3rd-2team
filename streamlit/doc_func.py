@@ -143,20 +143,22 @@ def patent_hybrid_search(
         # 상위 N개 청구항만 선택 (title만 포함)
         top_claims = [
             {
-                "id": c["id"],
+                "claim_number": c["id"][19:], # < 바뀐 부분. id 대신 청구항 번호만
                 "document": c["document"],
-                "title": c["metadata"].get("title", ""),  # title만 추출
-                "distance": c["distance"],
-                "hybrid_score": c["hybrid_score"]
+                # "title": c["metadata"].get("title", ""),  # title만 추출 < 바뀐 부분
+                "distance": round(c["distance"], 4), # 바뀐 부분
+                "hybrid_score": round(c["hybrid_score"], 4) # 바뀐 부분
             }
             for c in claims_sorted[:max_claims_per_patent]
         ]
         
         aggregated.append({
             "patent_id": patent_id,
-            "score": score,
-            "top_claim": rep_claim["document"],
-            "top_claim_no": rep_claim["metadata"]["claim_no"],
+            "score": round(score, 4),
+            # "top_claim": rep_claim["document"], < 바뀐 부분
+            # "top_claim_no": rep_claim["metadata"]["claim_no"], < 바뀐 부분
+            "title": rep_claim['metadata']['title'], # 바뀐 부분 (title을 patent_id당 하나 추가)
+            "ipcNumber":rep_claim["metadata"]["ipc"], # 바뀐 부분 (ipc number 추가)
             "claims_found": len(claims),
             "claims": top_claims  # 최대 max_claims_per_patent개
         })

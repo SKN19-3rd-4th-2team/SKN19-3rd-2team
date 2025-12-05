@@ -62,17 +62,13 @@ class PatentClaimSnippet(BaseModel):
     - patent_hybrid_search 함수의 결과 중, 개별 청구항(claims) 레벨 정보를 표현한다.
     - 사용자는 이 정보를 통해 어떤 청구항 내용 때문에 해당 특허가 검색되었는지 이해할 수 있다.
     """
-    id: str = Field(
+    claim_number: str = Field(
         ...,
-        description="벡터 DB 내에서 청구항 단위 문서를 구분하기 위한 내부 id.",
+        description="해당 청구항의 번호. 보통 숫자가 클수록 세부적인 설명에 관한 것이다.",
     )
     document: str = Field(
         ...,
         description="해당 청구항의 원문 텍스트 전체.",
-    )
-    title: str = Field(
-        "",
-        description="해당 청구항이 속한 특허의 발명의 명칭(존재하는 경우). 없으면 빈 문자열.",
     )
     distance: float = Field(
         ...,
@@ -101,7 +97,7 @@ class PatentSearchResult(BaseModel):
         ...,
         description=(
             "특허 출원번호 메타데이터의 'patent_id'와 동일한 값. "
-            "실제 출원번호이거나, 내부에서 사용하는 고유 식별자일 수 있다."
+            "실제 출원번호이다."
         ),
     )
     score: float = Field(
@@ -112,13 +108,13 @@ class PatentSearchResult(BaseModel):
             "이 값 기준으로 상위 특허가 결정된다."
         ),
     )
-    top_claim: str = Field(
-        ...,
-        description="가장 유사도가 높은 대표 청구항의 원문 텍스트.",
+    title: str = Field(
+        "",
+        description="특허의 발명의 명칭(존재하는 경우). 없으면 빈 문자열.",
     )
-    top_claim_no: int = Field(
-        ...,
-        description="대표 청구항 번호. 메타데이터의 claim_no 값과 동일하다.",
+    ipcNumber: str = Field(
+        "",
+        description="특허가 가진 IPC 코드. 하나의 문자열 안에서 콤마(,)로 구분된다."
     )
     claims_found: int = Field(
         ...,
@@ -355,6 +351,18 @@ class PatentByIdOutput(BaseModel):
             "여러 청구항 메타데이터 중 첫 번째로 발견된 title 을 대표값으로 사용한다. "
             "메타데이터에 title 정보가 없다면 빈 문자열일 수 있다."
         ),
+    )
+    register: str = Field(
+        "",
+        description="특허의 상태. 공개/거절 등"
+    )
+    ipc_codes: str = Field(
+        "",
+        description="특허의 IPC 코드"
+    )
+    link: str = Field(
+        "",
+        description="특허의 도면도 등 사진의 url"
     )
     num_claims: int = Field(
         ...,

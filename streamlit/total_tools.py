@@ -165,8 +165,8 @@ def tool_search_patent_with_description(
         vector_weight=0.7,
         bm25_weight=0.3,
     )
-    # raw_results: [{ "patent_id": ..., "score": ..., "top_claim": ...,
-    #                 "top_claim_no": ..., "claims_found": ..., "claims": [...] }, ...]
+    # raw_results: [{ "patent_id": ..., "score": ..., "title": ...,
+    #                 "ipcNumber": ..., "claims_found": ..., "claims": [...] }, ...] < 수정 부분
 
     # 3) exclude_patent_ids 적용
     filtered = [
@@ -185,9 +185,9 @@ def tool_search_patent_with_description(
         for c in item.get("claims", []):
             claim_snippets.append(
                 PatentClaimSnippet(
-                    id=c.get("id", ""),
+                    claim_number=c.get("claim_number", ""),     # < 수정 부분
                     document=c.get("document", ""),
-                    title=c.get("title", "") or "",
+                    # title=c.get("title", "") or "",
                     distance=float(c.get("distance", 0.0)),
                     hybrid_score=float(c.get("hybrid_score", 0.0)),
                 )
@@ -196,8 +196,10 @@ def tool_search_patent_with_description(
         result_obj = PatentSearchResult( 
             patent_id=item.get("patent_id", ""),
             score=float(item.get("score", 0.0)),
-            top_claim=item.get("top_claim", ""),
-            top_claim_no=int(item.get("top_claim_no", 0)),
+            # top_claim=item.get("top_claim", ""),              < 수정 부분
+            # top_claim_no=int(item.get("top_claim_no", 0)),    < 수정 부분
+            title=item.get("title", ""),                        # 수정 부분
+            ipcNumber=item.get("ipcNumber", ""),                # 수정 부분
             claims_found=int(item.get("claims_found", len(claim_snippets))),
             claims=claim_snippets,
             result_index=idx+1
@@ -282,14 +284,14 @@ def tool_search_detail_patent_by_id(
     이 툴은 청구항 텍스트뿐 아니라 다음 메타데이터도 함께 반환합니다:
     - title: 발명의 명칭
     - priority: 우선권/출원 국가 정보 (예: "대한민국")
-    - register: 공개/등록 상태 (예: "공개", "등록")
-    - ipc_raw: 원본 IPC 문자열 (예: "H04M 3/42, H04B 1/40, G06F 17/00, G06Q 30/06")
-    - ipc_codes: ipc_raw를 파싱한 개별 IPC 코드 리스트
-    - link: KIPRIS Plus 등 공보 열람 링크 (텍스트 URL)
+    - register: 공개/등록/거절 등의 상태 (예: "공개")
+    - claim_no: 청구항의 번호
+    - ipc: IPC 코드 리스트
+    - link: 특허의 도면도 url
 
     LLM이 이 툴을 사용할 때의 활용 팁:
     - 사용자가 "IPC 코드도 알려줘", "어느 IPC 분야인지 설명해줘"라고 하면,
-      반드시 ipc_raw / ipc_codes 값을 기반으로 설명하고,
+      반드시 ipc 값을 기반으로 설명하고,
       임의로 IPC 코드를 만들어내지 마세요.
     - 필요하다면 ipc_codes 값을 그대로 넘겨
       IPC 설명 도구(tool_search_ipc_description_from_code)를 연쇄 호출하여
@@ -379,8 +381,8 @@ def tool_search_detail_patent_by_id(
             link_candidates.append(link_val)
 
         ipc_val = meta.get("ipc", "")
-        if ipc_val:
-            ipc_candidates.append(ipc_val)
+        # if ipc_val:
+        #     ipc_candidates.append(ipc_val)
 
         claim_items.append(
             {
@@ -400,20 +402,20 @@ def tool_search_detail_patent_by_id(
     priority_value = pick_first_non_empty(priority_candidates)
     register_value = pick_first_non_empty(register_candidates)
     link_value = pick_first_non_empty(link_candidates)
-    ipc_raw_value = pick_first_non_empty(ipc_candidates)
+    # ipc_raw_value = pick_first_non_empty(ipc_candidates)
 
     # 5) IPC 코드 파싱 (쉼표 기준 분리 + 공백 정리)
-    ipc_codes_list: List[str] = []
-    if ipc_raw_value:
-        # 혹시 세미콜론이 섞여 있어도 처리되도록 통일
-        raw_for_split = ipc_raw_value.replace(";", ",")
-        for part in raw_for_split.split(","):
-            code = part.strip()
-            if not code:
-                continue
-            # 여러 공백 정리 (예: "H04M   3/42")
-            code = " ".join(code.split())
-            ipc_codes_list.append(code)
+    # ipc_codes_list: List[str] = []
+    # if ipc_raw_value:
+    #     # 혹시 세미콜론이 섞여 있어도 처리되도록 통일
+    #     raw_for_split = ipc_raw_value.replace(";", ",")
+    #     for part in raw_for_split.split(","):
+    #         code = part.strip()
+    #         if not code:
+    #             continue
+    #         # 여러 공백 정리 (예: "H04M   3/42")
+    #         code = " ".join(code.split())
+    #         ipc_codes_list.append(code)
 
     # 6) claim_no 기준으로 정렬
     claim_items_sorted = sorted(
@@ -440,8 +442,8 @@ def tool_search_detail_patent_by_id(
         title=title_value,
         priority=priority_value,
         register=register_value,
-        ipc_raw=ipc_raw_value,
-        ipc_codes=ipc_codes_list,
+        # ipc_raw=ipc_raw_value,
+        ipc_codes=ipc_val,
         link=link_value,
         num_claims=len(claim_models),
         claims=claim_models,
